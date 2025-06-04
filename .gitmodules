@@ -1,0 +1,6 @@
+[submodule "all-ride-interview-fe"]
+	path = all-ride-interview-fe
+	url = https://github.com/hrayatnia/all-ride-interview-fe.git
+[submodule "allride"]
+	path = allride
+	url = https://github.com/hrayatnia/allride.git
