@@ -1,13 +1,38 @@
 # AllRide User Management System
 
-A full-stack application for bulk user management with a React frontend and a Kotlin backend.
+A full-stack application for bulk user management with a React frontend and a Kotlin backend, structured as a monorepo using Git submodules.
 
-## Project Structure
+## Repository Structure
 
-The project consists of two main components:
+This repository serves as a container for two main components, organized as Git submodules:
 
-- `all-ride-interview-fe/`: React frontend application
-- `allride/`: Kotlin backend service
+- `all-ride-interview-fe/`: React frontend application (submodule)
+- `allride/`: Kotlin backend service (submodule)
+
+## Quick Start with Docker
+
+1. Clone the repository with submodules:
+   ```bash
+   git clone --recursive [repository-url]
+   cd AllRide
+   ```
+
+2. If you already cloned without submodules:
+   ```bash
+   git submodule update --init --recursive
+   ```
+
+3. Start the application stack:
+   ```bash
+   docker-compose up -d
+   ```
+
+   This will start:
+   - Frontend (port 3000)
+   - Backend (port 50051)
+   - Envoy Proxy (port 8090)
+   - LocalStack (port 4566)
+   - Memcached (port 11211)
 
 ## Frontend Application
 
@@ -138,26 +163,107 @@ cd allride
 ./gradlew test
 ```
 
-## Future Improvements
+## Development
 
-1. **Backend**
-   - Add persistent database storage
-   - Implement monitoring and metrics
-   - Add authentication and authorization
-   - Implement rate limiting
-   - Add caching for queries
-   - Add batch processing for large files
+### Prerequisites
+- Docker and Docker Compose
+- Git
+- Make (optional, for using Makefile shortcuts)
 
-2. **Frontend**
-   - Add user management features (edit, delete)
-   - Implement real-time updates
-   - Add data export functionality
-   - Enhance error reporting
-   - Add user activity logging
+### Local Development Without Docker
+If you prefer to run components individually:
+
+1. Start the backend services (LocalStack and Memcached):
+   ```bash
+   docker-compose up -d localstack memcached
+   ```
+
+2. Follow the README instructions in each submodule for local development setup.
+
+## Architecture
+
+The application uses a modern microservices architecture:
+
+```
+┌─────────────┐     ┌──────────┐     ┌─────────────┐
+│   Frontend  │────▶│  Envoy   │────▶│   Backend   │
+│   (React)   │     │  Proxy   │     │   (Kotlin)  │
+└─────────────┘     └──────────┘     └─────────────┘
+                                           │
+                                           ▼
+                                    ┌─────────────┐
+                                    │ LocalStack  │
+                                    │    (SQS)    │
+                                    └─────────────┘
+                                           │
+                                           ▼
+                                    ┌─────────────┐
+                                    │ Memcached  │
+                                    └─────────────┘
+```
+
+## Deployment
+
+### Production Deployment
+For production deployment:
+
+1. Update environment variables in docker-compose.prod.yml
+2. Build and push images:
+   ```bash
+   docker-compose -f docker-compose.prod.yml build
+   docker-compose -f docker-compose.prod.yml push
+   ```
+3. Deploy using your preferred orchestration tool (Kubernetes, ECS, etc.)
+
+### Scaling Considerations
+- Frontend is stateless and can be scaled horizontally
+- Backend is stateless but requires session affinity for WebSocket connections
+- Use AWS SQS for message queue in production
+- Consider replacing Memcached with Redis for better persistence
+
+## Troubleshooting
+
+### Common Issues
+
+1. Submodule Updates
+   ```bash
+   git submodule update --remote
+   ```
+
+2. Docker Network Issues
+   ```bash
+   docker-compose down
+   docker-compose up -d
+   ```
+
+3. LocalStack Connection
+   ```bash
+   docker-compose logs localstack
+   ```
+
+### Logs
+- Frontend logs: `docker-compose logs frontend`
+- Backend logs: `docker-compose logs backend`
+- Envoy logs: `docker-compose logs envoy`
 
 ## Contributing
 
-Please read our contributing guidelines before submitting pull requests.
+1. Update submodules:
+   ```bash
+   git submodule update --remote
+   ```
+
+2. Create a new branch:
+   ```bash
+   git checkout -b feature/your-feature
+   ```
+
+3. Commit changes and push:
+   ```bash
+   git push origin feature/your-feature
+   ```
+
+See CONTRIBUTING.md for detailed guidelines.
 
 ## License
 

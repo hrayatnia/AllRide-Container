@@ -1,0 +1,71 @@
+version: '3.8'
+
+services:
+  frontend:
+    build:
+      context: ./all-ride-interview-fe
+      dockerfile: Dockerfile
+      args:
+        - NODE_ENV=production
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+      - envoy
+    environment:
+      - REACT_APP_API_BASE_URL=http://api.allride.com
+      - REACT_APP_ENABLE_MOCK_API=false
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  backend:
+    build:
+      context: ./allride
+      dockerfile: Dockerfile
+    ports:
+      - "50051:50051"
+    environment:
+      - AWS_REGION=${AWS_REGION:-us-east-1}
+      - SQS_QUEUE_URL=${SQS_QUEUE_URL}
+      - SQS_DLQ_URL=${SQS_DLQ_URL}
+      - MEMCACHED_ENDPOINT=memcached:11211
+      - SSL_KEYSTORE_PASSWORD=${SSL_KEYSTORE_PASSWORD}
+      - SSL_KEY_ALIAS=${SSL_KEY_ALIAS}
+    depends_on:
+      - memcached
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:50051/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    volumes:
+      - ./keystore.jks:/app/keystore.jks:ro
+
+  envoy:
+    build:
+      context: ./all-ride-interview-fe
+      dockerfile: envoy.Dockerfile
+    ports:
+      - "8090:8090"
+    depends_on:
+      - backend
+    volumes:
+      - ./all-ride-interview-fe/config/envoy.yaml:/etc/envoy/envoy.yaml:ro
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8090/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  memcached:
+    image: memcached:1.6-alpine
+    ports:
+      - "11211:11211"
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "11211"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
