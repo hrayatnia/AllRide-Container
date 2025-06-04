@@ -54,3 +54,25 @@ override.tf
 override.tf.json
 *_override.tf
 *_override.tf.json
+
+# Security and Credentials
+*.jks
+*.keystore
+*.pem
+*.key
+*.crt
+*.cer
+*.p12
+*.pfx
+.aws/
+aws.config
+aws.credentials
+credentials.json
+*secret*
+*password*
+*token*
+
+# Test Data
+uploads/*.csv
+*test*.csv
+*test*.json
