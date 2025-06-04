@@ -1,0 +1,103 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./allride
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+      - "50051:50051"
+    environment:
+      - ENVIRONMENT=development
+      - AWS_REGION=us-east-1
+      - AWS_ACCESS_KEY_ID=test
+      - AWS_SECRET_ACCESS_KEY=test
+      - AWS_ENDPOINT_URL=http://localstack:4566
+    depends_on:
+      - localstack
+    networks:
+      - allride-network
+
+  frontend:
+    build:
+      context: ./all-ride-interview-fe
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    environment:
+      - REACT_APP_API_URL=http://backend:8080
+    networks:
+      - allride-network
+
+  envoy:
+    build:
+      context: ./all-ride-interview-fe
+      dockerfile: envoy.Dockerfile
+    ports:
+      - "8090:8090"  # gRPC-Web port
+      - "9901:9901"  # Admin port
+    depends_on:
+      - backend
+    networks:
+      - allride-network
+
+  postgres:
+    image: postgres:17.1
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=AllRide2024!
+      - POSTGRES_DB=allride
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - allride-network
+
+  memcached:
+    image: memcached:1.6
+    ports:
+      - "11211:11211"
+    networks:
+      - allride-network
+
+  localstack:
+    image: localstack/localstack:latest
+    ports:
+      - "4566:4566"
+    environment:
+      - SERVICES=sqs
+      - DEFAULT_REGION=${AWS_REGION:-us-east-1}
+      - AWS_DEFAULT_REGION=${AWS_REGION:-us-east-1}
+      - DOCKER_HOST=unix:///var/run/docker.sock
+      - INIT_SCRIPTS_PATH=/etc/localstack/init/ready.d
+      - EXTRA_CORS_ALLOWED_ORIGINS=*
+      - AWS_ACCESS_KEY_ID=test
+      - AWS_SECRET_ACCESS_KEY=test
+      - EAGER_SERVICE_LOADING=1
+      - SQS_QUEUE_MAIN=allride-main-queue
+      - SQS_QUEUE_DLQ=allride-dlq
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4566/_localstack/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - allride-network
+
+networks:
+  allride-network:
+    driver: bridge
+
+volumes:
+  postgres_data: 
